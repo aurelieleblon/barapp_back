@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.barapp.barapp_backend.entity.Utilisateur;
@@ -12,25 +13,33 @@ import com.barapp.barapp_backend.repository.UtilisateurRepository;
 @Service
 public class UtilisateurService {
 
-    @Autowired
-    private UtilisateurRepository utilisateurRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // Récupérer tous les utilisateurs
+    @Autowired
+    public UtilisateurService(UtilisateurRepository utilisateurRepository, PasswordEncoder passwordEncoder) {
+        this.utilisateurRepository = utilisateurRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
     public List<Utilisateur> getAllUtilisateurs() {
         return utilisateurRepository.findAll();
     }
 
-    // Récupérer un utilisateur par ID
     public Optional<Utilisateur> getUtilisateurById(Long id) {
         return utilisateurRepository.findById(id);
     }
 
-    // Créer ou mettre à jour un utilisateur
     public Utilisateur saveUtilisateur(Utilisateur utilisateur) {
+        // Hacher le mot de passe avant d'enregistrer
+        String motDePasseClair = utilisateur.getMotDePasse();
+        if (motDePasseClair != null) {
+            String motDePasseEncode = passwordEncoder.encode(motDePasseClair);
+            utilisateur.setMotDePasse(motDePasseEncode);
+        }
         return utilisateurRepository.save(utilisateur);
     }
 
-    // Supprimer un utilisateur par ID
     public boolean deleteUtilisateur(Long id) {
         if(utilisateurRepository.existsById(id)) {
             utilisateurRepository.deleteById(id);
@@ -39,9 +48,9 @@ public class UtilisateurService {
         return false;
     }
 
-    // Recherche par email (optionnel)
     public Optional<Utilisateur> getUtilisateurByEmail(String email) {
         return utilisateurRepository.findByEmail(email);
     }
 }
+
 

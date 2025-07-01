@@ -1,5 +1,7 @@
 package com.barapp.barapp_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,24 +16,21 @@ public class Prix {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // clé primaire de la table prix (ajoute si tu n'en as pas en base)
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "id_cocktail")
-    private Cocktail cocktail;
-
-    @ManyToOne
-    @JoinColumn(name = "id_taille")
-    private Taille taille;
-
+    private String taille;
     private Double prix;
+
+    @ManyToOne
+    @JoinColumn(name = "cocktail_id")
+    @JsonBackReference
+    private Cocktail cocktail;
 
     // Constructeurs
     public Prix() {
     }
 
-    public Prix(Cocktail cocktail, Taille taille, Double prix) {
-        this.cocktail = cocktail;
+    public Prix(String taille, Double prix) {
         this.taille = taille;
         this.prix = prix;
     }
@@ -41,19 +40,11 @@ public class Prix {
         return id;
     }
 
-    public Cocktail getCocktail() {
-        return cocktail;
-    }
-
-    public void setCocktail(Cocktail cocktail) {
-        this.cocktail = cocktail;
-    }
-
-    public Taille getTaille() {
+    public String getTaille() {
         return taille;
     }
 
-    public void setTaille(Taille taille) {
+    public void setTaille(String taille) {
         this.taille = taille;
     }
 
@@ -64,5 +55,12 @@ public class Prix {
     public void setPrix(Double prix) {
         this.prix = prix;
     }
-}
 
+    public Cocktail getCocktail() {
+        return cocktail;
+    }
+
+    public void setCocktail(Cocktail cocktail) {
+        this.cocktail = cocktail;
+    }
+}

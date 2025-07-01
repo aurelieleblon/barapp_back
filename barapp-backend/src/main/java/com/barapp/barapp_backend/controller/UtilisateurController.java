@@ -1,76 +1,65 @@
 package com.barapp.barapp_backend.controller;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
 import com.barapp.barapp_backend.entity.Utilisateur;
-import com.barapp.barapp_backend.repository.UtilisateurRepository;
+import com.barapp.barapp_backend.service.UtilisateurService;
+
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/utilisateurs")
 public class UtilisateurController {
 
+    private final UtilisateurService utilisateurService;
+    private final PasswordEncoder passwordEncoder;
+
     @Autowired
-    private UtilisateurRepository utilisateurRepository;
-
-    // Lister tous les utilisateurs
-    @GetMapping
-    public List<Utilisateur> getAllUtilisateurs() {
-        return utilisateurRepository.findAll();
+    public UtilisateurController(UtilisateurService utilisateurService, PasswordEncoder passwordEncoder) {
+        this.utilisateurService = utilisateurService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // Récupérer un utilisateur par ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Utilisateur> getUtilisateurById(@PathVariable Long id) {
-        Optional<Utilisateur> utilisateur = utilisateurRepository.findById(id);
-        return utilisateur.map(ResponseEntity::ok)
-                          .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // Créer un nouvel utilisateur
     @PostMapping
-    public Utilisateur createUtilisateur(@RequestBody Utilisateur utilisateur) {
-        return utilisateurRepository.save(utilisateur);
-    }
-
-    // Mettre à jour un utilisateur
-    @PutMapping("/{id}")
-    public ResponseEntity<Utilisateur> updateUtilisateur(@PathVariable Long id, @RequestBody Utilisateur utilisateurDetails) {
-        Optional<Utilisateur> utilisateurOptional = utilisateurRepository.findById(id);
-
-        if (!utilisateurOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> registerUtilisateur(@RequestBody Utilisateur utilisateur) {
+        // Vérifier si email déjà utilisé
+        Optional<Utilisateur> existingUser = utilisateurService.getUtilisateurByEmail(utilisateur.getEmail());
+        if (existingUser.isPresent()) {
+            return ResponseEntity.badRequest().body("Cet email est déjà utilisé.");
         }
 
-        Utilisateur utilisateur = utilisateurOptional.get();
-        utilisateur.setNom(utilisateurDetails.getNom());
-        utilisateur.setEmail(utilisateurDetails.getEmail());
-        utilisateur.setMotDePasse(utilisateurDetails.getMotDePasse());
-        utilisateur.setRole(utilisateurDetails.getRole());
+        // Hacher le mot de passe
+        utilisateur.setMotDePasse(passwordEncoder.encode(utilisateur.getMotDePasse()));
 
-        Utilisateur updatedUtilisateur = utilisateurRepository.save(utilisateur);
-        return ResponseEntity.ok(updatedUtilisateur);
+        // Sauvegarder l'utilisateur
+        Utilisateur savedUser = utilisateurService.saveUtilisateur(utilisateur);
+
+        return ResponseEntity.ok(savedUser);
     }
 
-    // Supprimer un utilisateur
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUtilisateur(@PathVariable Long id) {
-        if (!utilisateurRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+    // Nouvel endpoint pour récupérer le rôle de l'utilisateur connecté
+    @GetMapping("/current-role")
+    public ResponseEntity<Map<String, String>> getCurrentUserRole(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.ok(Map.of("role", "ANONYMOUS"));
         }
-        utilisateurRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+
+        String role = authentication.getAuthorities().stream()
+            .findFirst()
+            .map(GrantedAuthority::getAuthority)
+            .orElse("ANONYMOUS");
+
+        if (role.startsWith("ROLE_")) {
+            role = role.substring(5);
+        }
+
+        return ResponseEntity.ok(Map.of("role", role));
     }
 }
 

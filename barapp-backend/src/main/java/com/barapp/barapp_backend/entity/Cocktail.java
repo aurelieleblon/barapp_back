@@ -3,6 +3,8 @@ package com.barapp.barapp_backend.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+
 
 @Entity
 @Table(name = "cocktail")
@@ -21,8 +24,9 @@ public class Cocktail {
 
     private String nom;
 
-    @OneToMany(mappedBy = "cocktail", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Prix> prixParTaille = new ArrayList<>();
+   @OneToMany(mappedBy = "cocktail", cascade = CascadeType.ALL, orphanRemoval = true)
+@JsonManagedReference
+private List<Prix> prixParTaille = new ArrayList<>();
 
     // Constructeurs
     public Cocktail() {

@@ -11,8 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.barapp.barapp_backend.dto.CocktailDto;
+import com.barapp.barapp_backend.dto.PrixDto;
 import com.barapp.barapp_backend.entity.Cocktail;
+import com.barapp.barapp_backend.entity.Prix;
 import com.barapp.barapp_backend.service.CocktailService;
+
+import jakarta.validation.Valid;
+
 
 @RestController
 @RequestMapping("/api/cocktails")
@@ -37,14 +43,48 @@ public class CocktailController {
     }
 
     @PostMapping
-    public Cocktail createCocktail(@RequestBody Cocktail cocktail) {
-        return cocktailService.saveCocktail(cocktail);
-    }
+public ResponseEntity<CocktailDto> createCocktail(@Valid @RequestBody CocktailDto cocktailDto) {
+    Cocktail cocktail = convertToEntity(cocktailDto);
+    Cocktail savedCocktail = cocktailService.saveCocktail(cocktail);
+    CocktailDto savedDto = convertToDto(savedCocktail);
+    return ResponseEntity.ok(savedDto);
+}
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCocktail(@PathVariable Long id) {
         cocktailService.deleteCocktail(id);
         return ResponseEntity.noContent().build();
     }
+
+    public Cocktail convertToEntity(CocktailDto dto) {
+    Cocktail cocktail = new Cocktail();
+    cocktail.setNom(dto.getNom());
+    if (dto.getPrixParTaille() != null) {
+        dto.getPrixParTaille().forEach(prixDto -> {
+            Prix prix = new Prix();
+            prix.setPrix(prixDto.getPrix());
+            cocktail.addPrix(prix);
+        });
+    }
+    return cocktail;
+}
+
+CocktailDto convertToDto(Cocktail cocktail) {
+    CocktailDto dto = new CocktailDto();
+    dto.setId(cocktail.getId());
+    dto.setNom(cocktail.getNom());
+
+    List<PrixDto> prixDtos = cocktail.getPrixParTaille().stream().map(prix -> {
+        PrixDto prixDto = new PrixDto();
+        prixDto.setId(prix.getId());
+        prixDto.setPrix(prix.getPrix());
+        return prixDto;
+    }).toList();
+
+    dto.setPrixParTaille(prixDtos);
+    return dto;
+}
+
 }
 
